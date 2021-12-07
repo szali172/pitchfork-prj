@@ -4,37 +4,45 @@ library(shiny)
 ui <- fluidPage(
 
     # Application title
-    titlePanel("Old Faithful Geyser Data"),
+    titlePanel("Pitchfork Reviews"),
 
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
+            selectInput(inputId = "artist",
+                        label = "Artist:",
+                        choices = sort(unique(reviews$artist)),
+                        selected = "Radiohead"),
         ),
-
+        
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("distPlot")
+            plotOutput("distPlot")
         )
     )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-
+    
+    artist_data = reactive(
+        reviews |>
+            filter(artist == input$artist)
+    )
+    
+    observeEvent(input$pitcher, {
+        updateSelectInput(inputId = "artist",
+                          choices = unique(artist_data()$name),
+                          selected = check_for_ff(unique(artist_data()$name)))
+    })
+    
     output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white')
+        ggplot(data = artist_data(), aes(x = pub_year, y = score)) +
+            geom_point() +
+            geom_smooth()
     })
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
