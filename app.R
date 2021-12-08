@@ -1,45 +1,60 @@
 library(shiny)
+library(tidyverse)
+
+years_ = c(sort(decreasing = FALSE, unique(reviews$pub_year)))
+radiohead = reviews %>% 
+    filter(artist == "radiohead")
+
+new_r = sort(radiohead$pub_year, decreasing = FALSE)
+    
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(
-
-    # Application title
-    titlePanel("Pitchfork Reviews"),
-
-    # Sidebar with a slider input for number of bins 
-    sidebarLayout(
-        sidebarPanel(
-            selectInput(inputId = "artist",
-                        label = "Artist:",
-                        choices = sort(unique(reviews$artist)),
-                        selected = "Radiohead"),
-        ),
+ui <- fluidPage(navbarPage(
+    title = "Pitchfork",
+    tabPanel(
+        title = "Artist page",
+        titlePanel("Pitchfork Reviews"),
         
-        # Show a plot of the generated distribution
-        mainPanel(
-            plotOutput("distPlot")
-        )
-    )
-)
+        sidebarLayout(
+            sidebarPanel(
+                selectInput(
+                    inputId = "artist",
+                    label = "Artist:",
+                    choices = sort(unique(reviews$artist)),
+                    selected = "radiohead"
+                )
+            ),
+            mainPanel(plotOutput("distPlot")))
+    ),
+    tabPanel(title = "About",
+             includeMarkdown("about.Rmd")
+             )
+))
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     
-    artist_data = reactive(
+    ## Viewing specific artist tab
+    artist_data = reactive({
         reviews |>
             filter(artist == input$artist)
-    )
-    
-    observeEvent(input$pitcher, {
-        updateSelectInput(inputId = "artist",
-                          choices = unique(artist_data()$name),
-                          selected = check_for_ff(unique(artist_data()$name)))
     })
     
+    observeEvent(input$artist, {
+        updateSelectInput(inputId = "type",
+                          choices = unique(artist_data()$artist),
+                          selected = unique(artist_data()$artist))
+    })
+  
+    
+    # Need to figure out how to order based on pub_year
     output$distPlot <- renderPlot({
-        ggplot(data = artist_data(), aes(x = pub_year, y = score)) +
-            geom_point() +
-            geom_smooth()
+        ggplot(data = artist_data(), aes(x = title, y = score, fill = pub_year)) +
+            xlab("Albums") +
+            ylab("Score") +
+            geom_col() + 
+            ylim(0,10) +
+            theme(axis.text.x = element_text(angle = 45, hjust = 1))
     })
 }
 
