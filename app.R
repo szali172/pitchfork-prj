@@ -2,29 +2,36 @@ library(shiny)
 library(tidyverse)
 
 years_ = c(sort(decreasing = FALSE, unique(reviews$pub_year)))
-radiohead = reviews %>% 
-    filter(artist == "radiohead")
+sort(radiohead$pub_year, decreasing = FALSE)
 
-new_r = sort(radiohead$pub_year, decreasing = FALSE)
-    
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(navbarPage(
-    title = "Pitchfork",
+    title = "Pitchfork Data Project",
     tabPanel(
-        title = "Artist page",
-        titlePanel("Pitchfork Reviews"),
+      title = "All Reviews",
+      titlePanel("Reviews for every genre (1999 - 2017)"),
+      sidebarLayout(
+        sidebarPanel(
+          dataTableOutput("table")
+        ),
+        mainPanel(plotOutput("genrePlot"))
+      )
+    ),
+    tabPanel(
+        title = "Artists",
+        titlePanel("Reviews for this Artist"),
         
         sidebarLayout(
             sidebarPanel(
                 selectInput(
                     inputId = "artist",
                     label = "Artist:",
-                    choices = sort(unique(reviews$artist)),
+                    choices = sort(unique(genres_and_scores$Artist)),
                     selected = "radiohead"
                 )
             ),
-            mainPanel(plotOutput("distPlot")))
+            mainPanel(plotOutput("artistPlot")))
     ),
     tabPanel(title = "About",
              includeMarkdown("about.Rmd")
@@ -36,8 +43,9 @@ server <- function(input, output) {
     
     ## Viewing specific artist tab
     artist_data = reactive({
-        reviews |>
-            filter(artist == input$artist)
+        genres_and_scores |>
+            filter(`Artist` == input$artist) %>% 
+            arrange(`Year Review Published`, .by_group = TRUE)
     })
     
     observeEvent(input$artist, {
@@ -48,13 +56,29 @@ server <- function(input, output) {
   
     
     # Need to figure out how to order based on pub_year
-    output$distPlot <- renderPlot({
-        ggplot(data = artist_data(), aes(x = title, y = score, fill = pub_year)) +
+    output$artistPlot <- renderPlot({
+        ggplot(data = artist_data(), aes(x = `Album`, y = `Score`, fill = `Year Review Published`)) +
+            geom_col() +
+            geom_text(mapping = aes(label = `Score`), color = "white", size = 5, position = position_nudge(x = 0, y = -2), family = "Times New Roman") + 
             xlab("Albums") +
             ylab("Score") +
-            geom_col() + 
             ylim(0,10) +
             theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    })
+    
+    output$genrePlot <- renderPlot({
+        genres_and_scores %>% 
+          ggplot(aes(x = `Year Review Published`, y = `Score`)) +
+          geom_point() +
+          geom_smooth() +
+          ylim(0, 10) +
+          xlab("Years") +
+          ylab("Score") +
+          facet_wrap(~`Genre`)
+    })
+    
+    output$table <- renderDataTable({
+      genres_and_scores
     })
 }
 

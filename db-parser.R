@@ -18,5 +18,15 @@ labels = collect(tbl(con, "labels"))
 reviews = collect(tbl(con, "reviews"))
 years = collect(tbl(con, "years"))
 
+
+# create a new tibble with genres added to the reviews
+genres_and_scores = left_join(reviews, genres, by = "reviewid") %>% 
+  na.omit("genre") %>% 
+  select(c("artist", "title", "score", "genre", "pub_year")) %>%
+  group_by(artist) %>% 
+  arrange(pub_year, .by_group = TRUE)
+names(genres_and_scores) = c("Artist", "Album", "Score", "Genre", "Year Review Published")
+
+
 # Disconnect from the database
 dbDisconnect(con)
