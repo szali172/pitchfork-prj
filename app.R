@@ -2,6 +2,9 @@ library(shiny)
 library(tidyverse)
 library(bslib)
 
+source("R/db-parser.R")
+source("R/function.R")
+
 ui <- fluidPage(navbarPage(
     inverse = TRUE,
     theme = bs_theme(),
